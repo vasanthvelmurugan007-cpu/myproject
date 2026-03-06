@@ -46,7 +46,7 @@ def get_model():
     if not GEMINI_API_KEY:
         return None
     genai.configure(api_key=GEMINI_API_KEY)
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 def gemini(prompt, image_data=None):
     model = get_model()
