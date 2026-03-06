@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+google-generativeai
+Pillow
+requests
+gunicorn
