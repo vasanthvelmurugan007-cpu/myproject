@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard AI v3 — Unified Cyber Defense Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<style>
+:root {
+  --bg:#020810; --bg2:#060f1c; --bg3:#0a1828; --panel:#0d2038; --panel2:#112540;
+  --border:#0f3a5c; --border2:#1a5c8c; --border3:#0f6090;
+  --cyan:#00e5ff; --cyan2:#00b8d4; --green:#39ff14; --green2:#00cc44;
+  --red:#ff1744; --red2:#cc0033; --orange:#ff9100; --yellow:#ffd740; --purple:#e040fb;
+  --text:#b0daf0; --text2:#6aaece; --text3:#2e6a8c;
+  --mono:'Share Tech Mono',monospace; --head:'Orbitron',monospace; --body:'Exo 2',sans-serif;
+  --glow-c:0 0 20px rgba(0,229,255,.35); --glow-g:0 0 20px rgba(57,255,20,.35); --glow-r:0 0 20px rgba(255,23,68,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--body);}
+
+/* ─── LAYOUT ─── */
+#app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:72px 1fr;height:100vh;}
+
+/* ─── TOP BAR ─── */
+#topbar{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;background:rgba(2,8,16,.98);border-bottom:1px solid var(--border);z-index:200;
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-hex{width:38px;height:38px;}
+.logo-hex svg{width:100%;height:100%;}
+.logo-text{font-family:var(--head);font-size:18px;font-weight:700;color:var(--cyan);letter-spacing:4px;text-shadow:var(--glow-c);}
+.logo-ver{font-family:var(--mono);font-size:8px;color:var(--text3);letter-spacing:3px;margin-top:1px;}
+.tb-pills{display:flex;gap:8px;}
+.pill{display:flex;align-items:center;gap:6px;padding:4px 12px;background:var(--bg3);border:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text3);}
+.pill .v{font-family:var(--head);font-size:14px;font-weight:700;color:var(--cyan);}
+.pill .v.g{color:var(--green);}.pill .v.r{color:var(--red);}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.api-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1px;border:1px solid var(--border);}
+.api-badge.ok{color:var(--green);border-color:rgba(57,255,20,.3);background:rgba(57,255,20,.05);}
+.api-badge.no{color:var(--red);border-color:rgba(255,23,68,.3);background:rgba(255,23,68,.05);}
+.dot{width:7px;height:7px;border-radius:50%;animation:blink 1.5s infinite;}
+.dot.g{background:var(--green);box-shadow:var(--glow-g);}
+.dot.r{background:var(--red);box-shadow:var(--glow-r);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.btn-cfg{padding:6px 14px;background:transparent;border:1px solid var(--border2);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;}
+.btn-cfg:hover{background:rgba(0,229,255,.1);box-shadow:var(--glow-c);}
+#clock{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:2px;}
+
+/* ─── ICON NAV ─── */
+#icnav{
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;overflow:hidden;z-index:100;
+}
+.nav-btn{
+  width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;border:1px solid transparent;transition:all .2s;position:relative;
+  background:transparent;
+}
+.nav-btn:hover{background:rgba(0,229,255,.05);border-color:var(--border);}
+.nav-btn.active{background:rgba(0,229,255,.1);border-color:var(--cyan);box-shadow:inset 0 0 15px rgba(0,229,255,.1);}
+.nav-btn.active::before{content:'';position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cyan);}
+.nav-btn .ni{font-size:18px;line-height:1;}
+.nav-btn .nl{font-family:var(--mono);font-size:7px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;}
+.nav-btn.active .nl{color:var(--cyan);}
+.nav-sep{width:36px;height:1px;background:var(--border);margin:4px 0;}
+/* Tracker nav has special red accent */
+.nav-btn.tracker.active{background:rgba(255,23,68,.08);border-color:var(--red);}
+.nav-btn.tracker.active::before{background:var(--red);}
+.nav-btn.tracker.active .nl{color:var(--red);}
+
+/* ─── MAIN CONTENT ─── */
+#main{overflow:hidden;position:relative;}
+
+/* ─── PANELS ─── */
+.view{display:none;height:100%;overflow-y:auto;padding:24px 28px;animation:fadeIn .25s ease;}
+.view.active{display:block;}
+.view.map-view{display:none;padding:0;overflow:hidden;}
+.view.map-view.active{display:flex;flex-direction:column;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* scrollbar */
+.view::-webkit-scrollbar{width:4px;}
+.view::-webkit-scrollbar-thumb{background:var(--border2);}
+
+/* ─── DASHBOARD ─── */
+.dash-hero{text-align:center;padding:32px 0 24px;}
+.dash-hero h1{font-family:var(--head);font-size:clamp(28px,4vw,56px);font-weight:900;letter-spacing:6px;
+  background:linear-gradient(135deg,var(--cyan) 0%,var(--green) 50%,var(--cyan) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  background-size:200% auto;animation:shimmer 4s linear infinite;}
+@keyframes shimmer{0%{background-position:0% center}100%{background-position:200% center}}
+.dash-hero p{font-family:var(--mono);color:var(--text3);font-size:11px;letter-spacing:5px;margin-top:6px;text-transform:uppercase;}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:28px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);padding:16px;text-align:center;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.stat-num{font-family:var(--head);font-size:28px;font-weight:700;color:var(--cyan);}
+.stat-lbl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+
+.module-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.mod-card{
+  background:var(--panel);border:1px solid var(--border);padding:18px;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.mod-card::before{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--cyan);transition:width .3s;}
+.mod-card:hover::before{width:100%;}
+.mod-card:hover{border-color:var(--border2);background:rgba(0,229,255,.04);transform:translateY(-2px);}
+.mod-card.tracker-card:hover{border-color:var(--red);}
+.mod-card.tracker-card::before{background:var(--red);}
+.mod-icon{font-size:28px;margin-bottom:10px;filter:drop-shadow(0 0 8px rgba(0,229,255,.4));}
+.mod-title{font-family:var(--head);font-size:13px;font-weight:600;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:6px;}
+.mod-card.tracker-card .mod-title{color:var(--red);}
+.mod-desc{font-size:12px;color:var(--text3);line-height:1.6;}
+.mod-badge{display:inline-block;margin-top:10px;padding:2px 8px;font-family:var(--mono);font-size:8px;letter-spacing:2px;border:1px solid var(--border2);color:var(--text3);}
+
+/* ─── MODULE PANELS ─── */
+.mod-header{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.mod-header-icon{font-size:36px;filter:drop-shadow(0 0 12px rgba(0,229,255,.5));}
+.mod-header-title{font-family:var(--head);font-size:24px;font-weight:700;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;}
+.mod-header-desc{color:var(--text3);font-size:12px;margin-top:3px;}
+
+/* ─── INPUT CARD ─── */
+.icard{background:var(--panel);border:1px solid var(--border);padding:22px;margin-bottom:18px;position:relative;}
+.icard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(to bottom,var(--cyan),transparent);}
+label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:7px;}
+input[type=text],input[type=number],textarea,select{
+  width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:12px;padding:9px 13px;outline:none;transition:all .2s;resize:vertical;
+}
+input:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.15);background:rgba(0,229,255,.02);}
+textarea{min-height:90px;}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:14px;}
+.frow{margin-bottom:14px;}
+
+/* ─── BUTTONS ─── */
+.btn{padding:10px 24px;font-family:var(--head);font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.btn-p{background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:var(--bg);box-shadow:0 0 18px rgba(0,229,255,.3);}
+.btn-p:hover{box-shadow:0 0 30px rgba(0,229,255,.6);transform:translateY(-1px);}
+.btn-d{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;box-shadow:0 0 18px rgba(255,23,68,.3);}
+.btn-d:hover{box-shadow:0 0 30px rgba(255,23,68,.6);transform:translateY(-1px);}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;}
+
+/* ─── UPLOAD ─── */
+.upzone{border:2px dashed var(--border2);padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);}
+.upzone:hover,.upzone.drag{border-color:var(--cyan);background:rgba(0,229,255,.03);box-shadow:var(--glow-c);}
+.upzone input{display:none;}
+.up-icon{font-size:32px;margin-bottom:10px;}
+.up-txt{font-family:var(--mono);color:var(--text3);font-size:11px;letter-spacing:2px;}
+#img-prev{max-width:280px;max-height:180px;margin:14px auto 0;display:none;border:1px solid var(--border);}
+
+/* ─── LOADER ─── */
+.loader{display:none;align-items:center;gap:12px;padding:18px 0;font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:2px;}
+.loader.show{display:flex;}
+.lbar{flex:1;height:2px;background:var(--border);position:relative;overflow:hidden;}
+.lbar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 1.1s infinite;}
+@keyframes scan{to{left:140%;}}
+
+/* ─── RESULT CARD ─── */
+.rcard{background:var(--panel);border:1px solid var(--border);padding:22px;display:none;animation:fadeIn .35s ease;position:relative;overflow:hidden;}
+.rcard.show{display:block;}
+.rcard.safe{border-color:var(--green);}.rcard.safe::after{background:var(--green);}
+.rcard.warn{border-color:var(--orange);}.rcard.warn::after{background:var(--orange);}
+.rcard.danger{border-color:var(--red);}.rcard.danger::after{background:var(--red);}
+.rcard::after{content:'';position:absolute;top:0;left:0;width:100%;height:3px;}
+.vbadge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;font-family:var(--head);font-size:16px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
+.vbadge.safe{color:var(--green);background:rgba(57,255,20,.08);border:1px solid var(--green);}
+.vbadge.warn{color:var(--orange);background:rgba(255,145,0,.08);border:1px solid var(--orange);}
+.vbadge.danger{color:var(--red);background:rgba(255,23,68,.08);border:1px solid var(--red);}
+.cbar{height:5px;background:var(--bg3);margin:10px 0;position:relative;overflow:hidden;}
+.cfill{height:100%;transition:width 1s ease;}
+.rsec{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.rsec h4{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-bottom:7px;}
+.flist{list-style:none;display:flex;flex-direction:column;gap:3px;}
+.flist li{font-size:12px;color:var(--text2);padding:3px 0 3px 14px;position:relative;}
+.flist li::before{content:'▸';position:absolute;left:0;color:var(--red);}
+.etxt{font-size:13px;color:var(--text2);line-height:1.65;}
+.rbox{background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);padding:11px 14px;font-size:12px;color:var(--cyan);margin-top:7px;}
+
+/* ─── API WARN ─── */
+.awarn{background:rgba(255,145,0,.07);border:1px solid var(--orange);padding:10px 14px;font-family:var(--mono);font-size:10px;color:var(--orange);display:none;margin-bottom:14px;letter-spacing:1px;}
+.awarn.show{display:block;}
+
+/* ─── SOS GRID ─── */
+.sos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:18px;}
+.sos-c{background:var(--bg3);border:1px solid var(--border);padding:14px;text-align:center;cursor:pointer;transition:all .2s;}
+.sos-c:hover{border-color:var(--red);background:rgba(255,23,68,.07);box-shadow:var(--glow-r);}
+.sos-num{font-family:var(--head);font-size:24px;font-weight:700;color:var(--red);}
+.sos-name{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1px;margin-top:3px;text-transform:uppercase;}
+
+/* ─── MODAL ─── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;align-items:center;justify-content:center;}
+.modal-ov.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border2);padding:30px;max-width:460px;width:90%;box-shadow:0 0 60px rgba(0,229,255,.12);}
+.modal h3{font-family:var(--head);font-size:20px;letter-spacing:3px;color:var(--cyan);margin-bottom:7px;text-transform:uppercase;}
+.modal p{color:var(--text3);font-size:12px;margin-bottom:18px;line-height:1.8;}
+.modal-acts{display:flex;gap:10px;margin-top:18px;}
+
+/* ─── MAP PANEL ─── */
+#map-container{flex:1;position:relative;overflow:hidden;}
+#the-map{width:100%;height:100%;background:#0a1520!important;}
+#the-map .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.65) saturate(.5) contrast(1.2);}
+#map-container::before{content:'';position:absolute;top:12px;left:12px;width:42px;height:42px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);z-index:900;pointer-events:none;box-shadow:-3px -3px 12px rgba(0,229,255,.3);}
+#map-container::after{content:'';position:absolute;bottom:12px;right:12px;width:42px;height:42px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);z-index:900;pointer-events:none;box-shadow:3px 3px 12px rgba(0,229,255,.3);}
+.scan-ov{position:absolute;inset:0;z-index:5;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,229,255,.012) 3px,rgba(0,229,255,.012) 4px);}
+.grid-ov{position:absolute;inset:0;z-index:5;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:60px 60px;}
+
+/* Map top bar */
+#map-topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(2,8,16,.96);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+#map-topbar .pill{padding:3px 10px;}
+#map-topbar .pill .v{font-size:13px;}
+.stolen-alert{flex:1;text-align:center;font-family:var(--head);font-size:11px;letter-spacing:4px;color:var(--red);background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.3);padding:4px 12px;display:none;animation:af 1s infinite;}
+@keyframes af{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Tracker sidebar */
+#tracker-split{display:flex;flex:1;overflow:hidden;}
+#tracker-sidebar{width:280px;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--border2) transparent;}
+#tracker-sidebar::-webkit-scrollbar{width:3px;}
+#tracker-sidebar::-webkit-scrollbar-thumb{background:var(--border2);}
+.ts-sec{padding:12px;border-bottom:1px solid var(--border);}
+.ts-title{font-family:var(--mono);font-size:8px;letter-spacing:4px;color:var(--text3);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.ts-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* device card in tracker */
+.dc{background:var(--bg3);border:1px solid var(--border);padding:10px;margin-bottom:6px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.dc::before{content:'';position:absolute;left:0;top:0;width:3px;height:100%;background:var(--text3);transition:background .2s;}
+.dc.live::before{background:var(--green);}
+.dc.stolen::before{background:var(--red);}
+.dc.sel{border-color:var(--cyan);background:rgba(0,229,255,.04);}
+.dc.sel::before{background:var(--cyan);}
+.dc:hover{border-color:var(--border2);}
+.dc-name{font-family:var(--head);font-size:10px;font-weight:600;letter-spacing:1px;color:var(--text);margin-bottom:3px;}
+.dc-imei{font-family:var(--mono);font-size:9px;color:var(--text3);}
+.dc-meta{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--text3);}
+.tbadge{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:8px;padding:2px 5px;}
+.tbadge.live{color:var(--green);border:1px solid rgba(57,255,20,.3);background:rgba(57,255,20,.05);}
+.tbadge.off{color:var(--text3);border:1px solid var(--border);}
+.tbadge.stolen{color:var(--red);border:1px solid rgba(255,23,68,.3);background:rgba(255,23,68,.05);}
+.stbtn{width:100%;margin-top:6px;padding:4px;background:rgba(255,23,68,.08);border:1px solid rgba(255,23,68,.25);color:var(--red);font-family:var(--mono);font-size:8px;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all .2s;}
+.stbtn:hover{background:rgba(255,23,68,.2);}
+.ping-entry{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(15,58,92,.4);font-family:var(--mono);font-size:9px;}
+.ping-entry .co{color:var(--cyan);}
+.ping-entry .ts{color:var(--text3);}
+#ping-log{max-height:160px;overflow-y:auto;scrollbar-width:thin;}
+#ping-log::-webkit-scrollbar{width:2px;}
+#ping-log::-webkit-scrollbar-thumb{background:var(--border2);}
+
+/* Target info box on map */
+#tgt-box{position:absolute;top:14px;right:14px;z-index:1000;background:rgba(2,8,16,.93);border:1px solid var(--border2);padding:14px 16px;min-width:240px;box-shadow:0 0 30px rgba(0,229,255,.08);display:none;}
+#tgt-box::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--cyan),transparent);}
+.tl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:2px;}
+.tv{font-family:var(--head);font-size:11px;color:var(--cyan);letter-spacing:1px;word-break:break-all;margin-bottom:8px;}
+.coord-d{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--green);text-shadow:0 0 12px rgba(57,255,20,.4);margin-bottom:8px;line-height:1.4;}
+.bb{height:4px;background:var(--bg3);margin-top:3px;margin-bottom:8px;}
+.bf{height:100%;transition:width .5s,background .5s;}
+
+/* Map control buttons */
+#mctrl{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:1000;}
+.mc{padding:6px 12px;background:rgba(2,8,16,.9);border:1px solid var(--border2);color:var(--cyan);font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all .2s;}
+.mc:hover{background:rgba(0,229,255,.1);box-shadow:0 0 12px rgba(0,229,255,.15);}
+.mc.on{background:rgba(0,229,255,.15);border-color:var(--cyan);}
+
+/* Tracker form inputs */
+.ts-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 9px;outline:none;margin-bottom:5px;transition:border .2s;}
+.ts-input:focus{border-color:var(--cyan);}
+.ts-btn{width:100%;padding:7px;font-family:var(--mono);font-size:9px;letter-spacing:2px;cursor:pointer;border:none;text-transform:uppercase;transition:all .2s;margin-bottom:4px;}
+.ts-btn.c{background:rgba(0,229,255,.1);border:1px solid var(--border2);color:var(--cyan);}
+.ts-btn.c:hover{background:rgba(0,229,255,.2);}
+.ts-btn.r{background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.3);color:var(--red);}
+.ts-btn.r:hover{background:rgba(255,23,68,.2);}
+#no-dev{padding:16px;text-align:center;font-family:var(--mono);font-size:9px;color:var(--text3);line-height:2.2;}
+
+/* Leaflet overrides */
+.leaflet-popup-content-wrapper{background:var(--panel)!important;border:1px solid var(--border2)!important;color:var(--text)!important;font-family:var(--mono)!important;font-size:10px!important;border-radius:0!important;box-shadow:0 0 20px rgba(0,229,255,.1)!important;}
+.leaflet-popup-tip{background:var(--panel)!important;}
+.leaflet-control-zoom{display:none;}
+
+@media(max-width:768px){
+  #app{grid-template-columns:1fr;}
+  #icnav{display:none;}
+  #tracker-sidebar{width:200px;}
+  #tgt-box{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ TOP BAR ═══ -->
+<div id="topbar">
+  <div class="logo">
+    <div class="logo-hex">
+      <svg viewBox="0 0 38 38" fill="none">
+        <polygon points="19,2 36,11 36,27 19,36 2,27 2,11" stroke="#00e5ff" stroke-width="1.5" fill="rgba(0,229,255,.06)"/>
+        <polygon points="19,8 30,14.5 30,23.5 19,30 8,23.5 8,14.5" stroke="#00e5ff" stroke-width=".8" fill="rgba(0,229,255,.03)"/>
+        <text x="19" y="23" text-anchor="middle" fill="#00e5ff" font-size="10" font-weight="bold" font-family="Orbitron">PG</text>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">PHISHGUARD AI</div>
+      <div class="logo-ver">v3.0 — Unified Cyber Defense</div>
+    </div>
+  </div>
+  <div class="tb-pills">
+    <div class="pill"><span class="v" id="tb-scans">0</span> Scans</div>
+    <div class="pill"><span class="v r" id="tb-threats">0</span> Threats</div>
+    <div class="pill"><span class="v g" id="tb-live">0</span> Live</div>
+    <div class="pill"><span class="v" id="tb-devs">0</span> Devices</div>
+  </div>
+  <div class="tb-right">
+    <div class="api-badge no" id="api-badge"><div class="dot r" id="api-dot"></div><span id="api-txt">API NOT SET</span></div>
+    <button class="btn-cfg" onclick="showCfg()">⚙ Settings</button>
+    <div id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- ═══ ICON NAV ═══ -->
+<div id="icnav">
+  <button class="nav-btn active" id="nav-dash" onclick="gotoView('dash',this)" title="Dashboard">
+    <span class="ni">⬡</span><span class="nl">Home</span>
+  </button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="gotoView('phishing',this)" title="Phishing URL">
+    <span class="ni">🎣</span><span class="nl">Phish</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('deepfake',this)" title="Deepfake">
+    <span class="ni">🖼</span><span class="nl">Deep</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('upi',this)" title="UPI Fraud">
+    <span class="ni">💳</span><span class="nl">UPI</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('darrest',this)" title="Digital Arrest">
+    <span class="ni">🚔</span><span class="nl">Arrest</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('job',this)" title="Fake Job">
+    <span class="ni">💼</span><span class="nl">Job</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('misinfo',this)" title="Misinformation">
+    <span class="ni">📱</span><span class="nl">Info</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('sos',this)" title="SOS Safety">
+    <span class="ni">🆘</span><span class="nl">SOS</span>
+  </button>
+  <button class="nav-btn" onclick="gotoView('imei',this)" title="IMEI">
+    <span class="ni">📲</span><span class="nl">IMEI</span>
+  </button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn tracker" onclick="gotoView('tracker',this)" title="Live Tracker">
+    <span class="ni">🗺</span><span class="nl">Track</span>
+  </button>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div id="main">
+
+<!-- ── DASHBOARD ── -->
+<div class="view active" id="view-dash">
+  <div class="dash-hero">
+    <h1>CYBER SHIELD</h1>
+    <p>India's Unified AI-Powered Threat Detection & Device Tracking Platform</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="ds-scans">0</div><div class="stat-lbl">Total Scans</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)" id="ds-threats">0</div><div class="stat-lbl">Threats Found</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="ds-safe">0</div><div class="stat-lbl">Safe Items</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--orange)" id="ds-devs">0</div><div class="stat-lbl">Tracked Devices</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)" id="ds-live">0</div><div class="stat-lbl">Live Devices</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--cyan)" id="ds-pings">0</div><div class="stat-lbl">GPS Pings</div></div>
+  </div>
+  <div class="module-grid">
+    <div class="mod-card" onclick="gotoView('phishing',null)"><div class="mod-icon">🎣</div><div class="mod-title">Phishing URL</div><div class="mod-desc">Detect fake banking portals, UPI scam links, IRCTC/Aadhaar lookalikes</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('deepfake',null)"><div class="mod-icon">🖼</div><div class="mod-title">Deepfake Detector</div><div class="mod-desc">AI-generated face detection, morphed images, non-consensual content</div><div class="mod-badge">VISION AI</div></div>
+    <div class="mod-card" onclick="gotoView('upi',null)"><div class="mod-icon">💳</div><div class="mod-title">UPI Fraud</div><div class="mod-desc">Fake payment requests, KYC scams, wrong-transfer tricks, UPI impersonation</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('darrest',null)"><div class="mod-icon">🚔</div><div class="mod-title">Digital Arrest</div><div class="mod-desc">CBI/ED/NCB/TRAI impersonation, video detention scams, safe account fraud</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('job',null)"><div class="mod-icon">💼</div><div class="mod-title">Fake Job Offer</div><div class="mod-desc">WFH scams, advance fee fraud, fake multinationals, WhatsApp recruitment</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('misinfo',null)"><div class="mod-icon">📱</div><div class="mod-title">Misinformation</div><div class="mod-desc">Fact-check WhatsApp forwards, fake news, fake government announcements</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('sos',null)"><div class="mod-icon">🆘</div><div class="mod-title">SOS Safety</div><div class="mod-desc">Emergency helplines, cyber harassment guidance, legal options for women</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card" onclick="gotoView('imei',null)"><div class="mod-icon">📲</div><div class="mod-title">IMEI Tracker</div><div class="mod-desc">Register devices, stolen device FIR guidance, CEIR reporting</div><div class="mod-badge">GEMINI AI</div></div>
+    <div class="mod-card tracker-card" onclick="gotoView('tracker',null)"><div class="mod-icon" style="filter:drop-shadow(0 0 10px rgba(255,23,68,.5))">🗺</div><div class="mod-title" style="color:var(--red)">Live GPS Tracker</div><div class="mod-desc">Real-time device tracking via Sentinel agent — OpenStreetMap, zero API cost</div><div class="mod-badge" style="border-color:rgba(255,23,68,.3);color:var(--red)">LIVE MAP</div></div>
+  </div>
+</div>
+
+<!-- ── PHISHING ── -->
+<div class="view" id="view-phishing">
+  <div class="mod-header"><div class="mod-header-icon">🎣</div><div><div class="mod-header-title">Phishing URL Detector</div><div class="mod-header-desc">Detects fake banking portals, UPI scam links, IRCTC/Aadhaar lookalikes, and malicious redirects</div></div></div>
+  <div class="icard">
+    <div class="frow"><label>Suspicious URL</label><input type="text" id="ph-url" placeholder="https://sbi-kyc-verify.xyz/login"/></div>
+    <button class="btn btn-p" onclick="runPhishing()">▶ Scan URL</button>
+  </div>
+  <div class="loader" id="ld-phishing"><div class="lbar"></div>ANALYZING URL...</div>
+  <div class="awarn" id="aw-phishing"></div>
+  <div class="rcard" id="rc-phishing"></div>
+</div>
+
+<!-- ── DEEPFAKE ── -->
+<div class="view" id="view-deepfake">
+  <div class="mod-header"><div class="mod-header-icon">🖼</div><div><div class="mod-header-title">Deepfake Image Detector</div><div class="mod-header-desc">Detects AI-generated faces, morphed images, and non-consensual deepfake content</div></div></div>
+  <div class="icard">
+    <label>Upload Image</label>
+    <div class="upzone" id="upzone" onclick="document.getElementById('df-file').click()"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="dropImg(event)">
+      <input type="file" id="df-file" accept="image/*" onchange="previewImg(this)">
+      <div class="up-icon">📁</div>
+      <div class="up-txt">CLICK TO UPLOAD OR DRAG & DROP — JPG · PNG · WEBP</div>
+      <img id="img-prev" alt="Preview">
+    </div>
+    <br>
+    <button class="btn btn-p" onclick="runDeepfake()">▶ Analyze Image</button>
+  </div>
+  <div class="loader" id="ld-deepfake"><div class="lbar"></div>SCANNING FOR ARTIFACTS...</div>
+  <div class="awarn" id="aw-deepfake"></div>
+  <div class="rcard" id="rc-deepfake"></div>
+</div>
+
+<!-- ── UPI ── -->
+<div class="view" id="view-upi">
+  <div class="mod-header"><div class="mod-header-icon">💳</div><div><div class="mod-header-title">UPI / Financial Fraud Detector</div><div class="mod-header-desc">Detects fake payments, KYC scams, wrong-transfer tricks, and UPI impersonation</div></div></div>
+  <div class="icard">
+    <div class="fgrid">
+      <div><label>UPI ID</label><input type="text" id="upi-id" placeholder="suspicious@paytm"/></div>
+      <div><label>Amount (₹)</label><input type="number" id="upi-amt" placeholder="5000"/></div>
+    </div>
+    <div class="frow"><label>Message / Description</label><textarea id="upi-msg" placeholder="Paste the payment request message..."></textarea></div>
+    <button class="btn btn-p" onclick="runUPI()">▶ Analyze Payment</button>
+  </div>
+  <div class="loader" id="ld-upi"><div class="lbar"></div>ANALYZING PAYMENT...</div>
+  <div class="awarn" id="aw-upi"></div>
+  <div class="rcard" id="rc-upi"></div>
+</div>
+
+<!-- ── DIGITAL ARREST ── -->
+<div class="view" id="view-darrest">
+  <div class="mod-header"><div class="mod-header-icon">🚔</div><div><div class="mod-header-title">Digital Arrest Scam Detector</div><div class="mod-header-desc">Identifies fake CBI/ED/NCB/TRAI calls demanding payment under threat of arrest</div></div></div>
+  <div class="icard">
+    <div class="frow"><label>What Did the Caller Say?</label><textarea id="da-msg" placeholder="E.g. 'You have a parcel with drugs registered to your Aadhaar. Our CBI officer will arrest you unless you pay ₹50,000...'"></textarea></div>
+    <div class="frow"><label>Caller Claims to Be</label><input type="text" id="da-caller" placeholder="CBI Officer / TRAI Official / NCB Agent..."/></div>
+    <button class="btn btn-p" onclick="runDArrest()">▶ Analyze Threat</button>
+  </div>
+  <div class="loader" id="ld-darrest"><div class="lbar"></div>ANALYZING THREAT PATTERN...</div>
+  <div class="awarn" id="aw-darrest"></div>
+  <div class="rcard" id="rc-darrest"></div>
+</div>
+
+<!-- ── JOB ── -->
+<div class="view" id="view-job">
+  <div class="mod-header"><div class="mod-header-icon">💼</div><div><div class="mod-header-title">Fake Job Offer Detector</div><div class="mod-header-desc">Detects WFH scams, advance fee fraud, and fake multinational job offers</div></div></div>
+  <div class="icard">
+    <div class="fgrid">
+      <div><label>Company Name</label><input type="text" id="job-co" placeholder="Amazon India / Unknown Ltd."/></div>
+      <div><label>Contact / Source</label><input type="text" id="job-src" placeholder="WhatsApp / Telegram / Email"/></div>
+    </div>
+    <div class="frow"><label>Job Offer Text</label><textarea id="job-txt" placeholder="Paste the full job offer message here..."></textarea></div>
+    <button class="btn btn-p" onclick="runJob()">▶ Verify Offer</button>
+  </div>
+  <div class="loader" id="ld-job"><div class="lbar"></div>VERIFYING JOB OFFER...</div>
+  <div class="awarn" id="aw-job"></div>
+  <div class="rcard" id="rc-job"></div>
+</div>
+
+<!-- ── MISINFO ── -->
+<div class="view" id="view-misinfo">
+  <div class="mod-header"><div class="mod-header-icon">📱</div><div><div class="mod-header-title">Misinformation Detector</div><div class="mod-header-desc">Fact-checks WhatsApp forwards, viral posts, fake government announcements</div></div></div>
+  <div class="icard">
+    <div class="frow"><label>Paste Suspicious Content</label><textarea id="mi-content" rows="6" placeholder="Paste the WhatsApp forward, news article, or viral message here..."></textarea></div>
+    <div class="frow"><label>Source</label><input type="text" id="mi-src" placeholder="WhatsApp group / Facebook / Twitter / Unknown"/></div>
+    <button class="btn btn-p" onclick="runMisinfo()">▶ Fact Check</button>
+  </div>
+  <div class="loader" id="ld-misinfo"><div class="lbar"></div>CROSS-REFERENCING CLAIMS...</div>
+  <div class="awarn" id="aw-misinfo"></div>
+  <div class="rcard" id="rc-misinfo"></div>
+</div>
+
+<!-- ── SOS ── -->
+<div class="view" id="view-sos">
+  <div class="mod-header"><div class="mod-header-icon">🆘</div><div><div class="mod-header-title">SOS & Women's Safety</div><div class="mod-header-desc">Emergency helplines, legal guidance, cyber harassment support</div></div></div>
+  <div style="margin-bottom:18px;">
+    <label style="margin-bottom:10px;">EMERGENCY CONTACTS — INDIA</label>
+    <div class="sos-grid">
+      <div class="sos-c"><div class="sos-num">112</div><div class="sos-name">All Emergency</div></div>
+      <div class="sos-c"><div class="sos-num">1091</div><div class="sos-name">Women Helpline</div></div>
+      <div class="sos-c"><div class="sos-num">1930</div><div class="sos-name">Cyber Crime</div></div>
+      <div class="sos-c"><div class="sos-num">100</div><div class="sos-name">Police</div></div>
+      <div class="sos-c"><div class="sos-num">7827170170</div><div class="sos-name">iCall Mental Health</div></div>
+      <div class="sos-c"><div class="sos-num">14422</div><div class="sos-name">Sanchar Saathi</div></div>
+    </div>
+  </div>
+  <div class="icard">
+    <div class="frow"><label>Describe Your Situation</label><textarea id="sos-sit" placeholder="Describe what is happening — cyberstalking, deepfake threats, harassment, digital blackmail..."></textarea></div>
+    <div class="frow"><label>Your Location (Optional)</label><input type="text" id="sos-loc" placeholder="Mumbai, Maharashtra / Delhi NCR..."/></div>
+    <button class="btn btn-d" onclick="runSOS()">🆘 Get Emergency Guidance</button>
+  </div>
+  <div class="loader" id="ld-sos"><div class="lbar"></div>GENERATING SAFETY PROTOCOL...</div>
+  <div class="awarn" id="aw-sos"></div>
+  <div class="rcard" id="rc-sos"></div>
+</div>
+
+<!-- ── IMEI ── -->
+<div class="view" id="view-imei">
+  <div class="mod-header"><div class="mod-header-icon">📲</div><div><div class="mod-header-title">IMEI Device Tracker</div><div class="mod-header-desc">Register your device IMEI, check stolen status, get Auto-FIR guidance</div></div></div>
+  <div class="icard">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:14px;">📌 Dial *#06# on your phone to find your IMEI</div>
+    <div class="fgrid">
+      <div><label>IMEI Number (15 Digits)</label><input type="text" id="im-imei" maxlength="15" placeholder="355812345678901" oninput="this.value=this.value.replace(/\D/g,'')"/></div>
+      <div><label>Device Name</label><input type="text" id="im-dev" placeholder="Samsung Galaxy S24"/></div>
+    </div>
+    <div class="frow"><label>Owner Name</label><input type="text" id="im-owner" placeholder="Your Name"/></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-p" onclick="runIMEI('register')">📋 Register Device</button>
+      <button class="btn btn-d" onclick="runIMEI('stolen')">🔍 Report Stolen</button>
+    </div>
+  </div>
+  <div class="loader" id="ld-imei"><div class="lbar"></div>PROCESSING IMEI...</div>
+  <div class="awarn" id="aw-imei"></div>
+  <div class="rcard" id="rc-imei"></div>
+</div>
+
+<!-- ══ LIVE TRACKER ══ -->
+<div class="view map-view" id="view-tracker">
+  <!-- Map topbar -->
+  <div id="map-topbar">
+    <div class="pill"><span class="v g" id="mt-live">0</span> LIVE</div>
+    <div class="pill"><span class="v" id="mt-devs">0</span> DEVICES</div>
+    <div class="pill"><span class="v" id="mt-pings">0</span> PINGS</div>
+    <div class="pill"><span class="v r" id="mt-stolen">0</span> STOLEN</div>
+    <div class="stolen-alert" id="stolen-alert">⚠ STOLEN DEVICE DETECTED — LIVE TRACKING ⚠</div>
+  </div>
+  <!-- Split: sidebar + map -->
+  <div id="tracker-split">
+    <!-- Sidebar -->
+    <div id="tracker-sidebar">
+      <div class="ts-sec">
+        <div class="ts-title">Tracked Devices</div>
+        <div id="dev-list">
+          <div id="no-dev">⚡ No devices yet.<br><br>Run <span style="color:var(--cyan)">sentinel_agent.py</span><br>on your phone, or click<br><span style="color:var(--green)">▶ Demo</span> below to test.</div>
+        </div>
+      </div>
+      <div class="ts-sec">
+        <div class="ts-title">Location History</div>
+        <div id="ping-log"><div style="font-family:var(--mono);font-size:9px;color:var(--text3);padding:6px 0;">Select a device...</div></div>
+      </div>
+      <div class="ts-sec" style="margin-top:auto;">
+        <div class="ts-title">Add / Simulate</div>
+        <input class="ts-input" id="ts-imei" maxlength="15" placeholder="IMEI (15 digits)" oninput="this.value=this.value.replace(/\D/g,'')">
+        <input class="ts-input" id="ts-name" placeholder="Device name" value="My Phone">
+        <input class="ts-input" id="ts-lat"  placeholder="Lat (e.g. 28.6139)">
+        <input class="ts-input" id="ts-lon"  placeholder="Lon (e.g. 77.2090)">
+        <button class="ts-btn c" onclick="tsAddDevice()">＋ ADD DEVICE</button>
+        <button class="ts-btn c" onclick="tsStartDemo()">▶ DEMO — Auto Simulate</button>
+        <button class="ts-btn r" id="ts-stop" style="display:none" onclick="tsStopDemo()">■ STOP DEMO</button>
+      </div>
+    </div>
+    <!-- Map -->
+    <div id="map-container">
+      <div class="scan-ov"></div>
+      <div class="grid-ov"></div>
+      <div id="the-map"></div>
+      <!-- Info box -->
+      <div id="tgt-box">
+        <div class="tl">Target Device</div><div class="tv" id="ti-name">—</div>
+        <div class="tl">IMEI</div><div class="tv" id="ti-imei" style="font-size:9px;color:var(--text2)">—</div>
+        <div class="tl">Live Coordinates</div><div class="coord-d" id="ti-coord">—</div>
+        <div class="tl">Location</div><div class="tv" id="ti-city" style="color:var(--text2);font-size:10px">—</div>
+        <div class="tl">Method · Accuracy</div><div class="tv" id="ti-method" style="color:var(--text3);font-size:9px">—</div>
+        <div class="tl">Battery</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+          <div class="bb" style="flex:1"><div class="bf" id="ti-bbar" style="width:0%"></div></div>
+          <span id="ti-batt" style="font-family:var(--mono);font-size:10px;color:var(--green)">—</span>
+        </div>
+        <div class="tl">Speed</div><div class="tv" id="ti-speed" style="color:var(--yellow);font-size:10px">—</div>
+        <div class="tl">Last Updated</div><div class="tv" id="ti-time" style="color:var(--text2);font-size:9px">—</div>
+        <div id="ti-status" class="tbadge live">● LIVE</div>
+      </div>
+      <!-- Controls -->
+      <div id="mctrl">
+        <button class="mc on" id="mc-follow" onclick="tsTog('follow')">⊙ FOLLOW</button>
+        <button class="mc on" id="mc-trail"  onclick="tsTog('trail')">↗ TRAIL</button>
+        <button class="mc"    id="mc-heat"   onclick="tsTog('heat')">◉ HEATMAP</button>
+        <button class="mc"                   onclick="tsFitAll()">⊞ FIT ALL</button>
+        <button class="mc"                   onclick="tsClearAll()">✕ CLEAR</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══ CONFIG MODAL ═══ -->
+<div class="modal-ov" id="cfg-modal">
+  <div class="modal">
+    <h3>⚙ API Configuration</h3>
+    <p>Enter your free Google Gemini API key to activate all AI modules.<br>
+    Get one at: <strong style="color:var(--cyan)">aistudio.google.com</strong><br><br>
+    Your key is only sent to your local Flask server.</p>
+    <label>GEMINI API KEY</label>
+    <input type="text" id="cfg-key" placeholder="AIzaSy..." style="margin-bottom:0;font-size:11px;">
+    <div class="modal-acts">
+      <button class="btn btn-p" onclick="saveCfg()">✓ Save & Activate</button>
+      <button class="btn" style="background:var(--bg3);border:1px solid var(--border);color:var(--text3);" onclick="closeCfg()">Cancel</button>
+    </div>
+    <div id="cfg-msg" style="margin-top:10px;font-family:var(--mono);font-size:10px;display:none;"></div>
+  </div>
+</div>
+<script>
+// ════════════════════════════════════════════════════════════
+//  PHISHGUARD AI v3 — Complete JS
+//  Security Modules + Sentinel Live Tracker
+// ════════════════════════════════════════════════════════════
+
+// ── Global Stats ─────────────────────────────────────────────
+let scanCount=0, threatCount=0, safeCount=0;
+const sessionStart = Date.now();
+
+// ── Clock ─────────────────────────────────────────────────────
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toUTCString().split(' ')[4] + ' UTC';
+},1000);
+
+// ── Nav ───────────────────────────────────────────────────────
+function gotoView(id, btn) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  else {
+    // find matching nav button
+    document.querySelectorAll('.nav-btn').forEach(b=>{
+      if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+id+"'")) b.classList.add('active');
+    });
+  }
+  if(id==='tracker' && !mapInitialized) initMap();
+}
+
+// ── Config ────────────────────────────────────────────────────
+function showCfg(){ document.getElementById('cfg-modal').classList.add('show'); }
+function closeCfg(){ document.getElementById('cfg-modal').classList.remove('show'); }
+async function saveCfg(){
+  const key = document.getElementById('cfg-key').value.trim();
+  if(!key) return;
+  const msg = document.getElementById('cfg-msg');
+  msg.style.display='block'; msg.style.color='var(--cyan)'; msg.textContent='SAVING...';
+  try {
+    const r = await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key})});
+    const d = await r.json();
+    if(d.success){
+      msg.style.color='var(--green)'; msg.textContent='✓ API KEY SAVED SUCCESSFULLY';
+      setAPIStatus(true);
+      setTimeout(closeCfg,1500);
+    } else {
+      msg.style.color='var(--red)'; msg.textContent='✗ '+d.error;
+    }
+  } catch(e){ msg.style.color='var(--red)'; msg.textContent='✗ Connection failed'; }
+}
+
+function setAPIStatus(ok){
+  const b=document.getElementById('api-badge'), d=document.getElementById('api-dot'), t=document.getElementById('api-txt');
+  b.className='api-badge '+(ok?'ok':'no');
+  d.className='dot '+(ok?'g':'r');
+  t.textContent=ok?'GEMINI ONLINE':'API NOT SET';
+}
+
+async function checkHealth(){
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    setAPIStatus(d.api_key_configured);
+  } catch(e){}
+}
+checkHealth();
+
+// ── Utilities ─────────────────────────────────────────────────
+function showLoader(id){ document.getElementById('ld-'+id).classList.add('show'); }
+function hideLoader(id){ document.getElementById('ld-'+id).classList.remove('show'); }
+function showWarn(id,msg){ const e=document.getElementById('aw-'+id); e.textContent='⚠ '+msg; e.classList.add('show'); }
+function hideWarn(id){ document.getElementById('aw-'+id).classList.remove('show'); }
+
+function vclass(v){
+  const u=(v||'').toUpperCase();
+  if(u.includes('SAFE')||u.includes('LEGIT')||u.includes('AUTHENT')||u.includes('TRUE')) return 'safe';
+  if(u.includes('SUSPECT')||u.includes('UNVERIF')||u.includes('MISLEAD')) return 'warn';
+  return 'danger';
+}
+function vicon(c){ return c==='safe'?'✓':c==='warn'?'⚠':'✗'; }
+
+function updateStats(isBad){
+  scanCount++;
+  if(isBad) threatCount++; else safeCount++;
+  ['scans','threats','safe'].forEach(k=>{
+    const el=document.getElementById('tb-'+k)||document.getElementById('ds-'+k);
+  });
+  document.getElementById('tb-scans').textContent=scanCount;
+  document.getElementById('tb-threats').textContent=threatCount;
+  document.getElementById('ds-scans').textContent=scanCount;
+  document.getElementById('ds-threats').textContent=threatCount;
+  document.getElementById('ds-safe').textContent=safeCount;
+}
+
+function confBar(pct,cls){
+  const colors={safe:'var(--green)',warn:'var(--orange)',danger:'var(--red)'};
+  return `<div style="display:flex;align-items:center;gap:10px;margin:8px 0;">
+    <span style="font-family:var(--mono);font-size:9px;color:var(--text3);">CONFIDENCE</span>
+    <div class="cbar" style="flex:1"><div class="cfill" style="width:${pct}%;background:${colors[cls]};"></div></div>
+    <span style="font-family:var(--head);font-size:16px;color:${colors[cls]};">${pct}%</span>
+  </div>`;
+}
+function flagList(arr,title='Indicators'){
+  if(!arr||!arr.length) return '';
+  return `<div class="rsec"><h4>${title}</h4><ul class="flist">${arr.map(i=>`<li>${i}</li>`).join('')}</ul></div>`;
+}
+
+function renderResult(id, data, extra=''){
+  const card = document.getElementById('rc-'+id);
+  const v = data.verdict||data.threat_level||'UNKNOWN';
+  const cls = vclass(v);
+  const conf = data.confidence||0;
+  updateStats(cls==='danger');
+
+  card.className=`rcard show ${cls}`;
+  card.innerHTML=`
+    <div class="vbadge ${cls}">${vicon(cls)} ${v.replace(/_/g,' ')}</div>
+    ${conf?confBar(conf,cls):''}
+    ${data.risk_level?`<span style="font-family:var(--mono);font-size:9px;color:var(--text3)">RISK: <span style="color:var(--${cls==='safe'?'green':cls==='warn'?'orange':'red'})">${data.risk_level}</span></span>`:''}
+    ${data.explanation?`<div class="rsec"><h4>Analysis</h4><p class="etxt">${data.explanation}</p></div>`:''}
+    ${flagList(data.indicators||data.red_flags||data.artifacts_found||data.manipulation_tactics||data.scam_tactics)}
+    ${(data.recommendation||data.immediate_action)?`<div class="rsec"><h4>Recommendation</h4><div class="rbox">${data.recommendation||data.immediate_action}</div></div>`:''}
+    ${extra}
+    <div style="margin-top:14px;font-family:var(--mono);font-size:9px;color:var(--text3)">ANALYZED: ${new Date().toLocaleString('en-IN')}</div>`;
+}
+
+function handleErr(id,data){
+  if(data.error){
+    showWarn(id, data.error.includes('GEMINI_API_KEY')
+      ? 'Gemini API key not configured. Click ⚙ Settings.'
+      : data.error);
+    return true;
+  }
+  return false;
+}
+
+// ════════════════════════════════════════════════════════════
+//  SECURITY MODULE API CALLS
+// ════════════════════════════════════════════════════════════
+
+// Phishing
+async function runPhishing(){
+  const url=document.getElementById('ph-url').value.trim();
+  if(!url) return alert('Enter a URL.');
+  hideWarn('phishing'); showLoader('phishing');
+  document.getElementById('rc-phishing').classList.remove('show');
+  try {
+    const r=await fetch('/api/phishing/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await r.json(); hideLoader('phishing');
+    if(handleErr('phishing',d)) return;
+    renderResult('phishing',d, d.heuristic_flags&&d.heuristic_flags.length?flagList(d.heuristic_flags,'Heuristic Pre-Scan'):'');
+  } catch(e){ hideLoader('phishing'); showWarn('phishing','Request failed: '+e.message); }
+}
+
+// Deepfake
+let dfFile=null;
+function previewImg(inp){
+  if(inp.files&&inp.files[0]){
+    dfFile=inp.files[0];
+    const r=new FileReader();
+    r.onload=e=>{ const p=document.getElementById('img-prev'); p.src=e.target.result; p.style.display='block'; };
+    r.readAsDataURL(inp.files[0]);
+  }
+}
+function dropImg(e){
+  e.preventDefault(); document.getElementById('upzone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')){
+    dfFile=f;
+    const inp=document.getElementById('df-file');
+    const dt=new DataTransfer(); dt.items.add(f); inp.files=dt.files;
+    previewImg(inp);
+  }
+}
+async function runDeepfake(){
+  const f=dfFile||(document.getElementById('df-file').files[0]);
+  if(!f) return alert('Upload an image first.');
+  hideWarn('deepfake'); showLoader('deepfake');
+  document.getElementById('rc-deepfake').classList.remove('show');
+  const fd=new FormData(); fd.append('image',f);
+  try {
+    const r=await fetch('/api/deepfake/analyze',{method:'POST',body:fd});
+    const d=await r.json(); hideLoader('deepfake');
+    if(handleErr('deepfake',d)) return;
+    renderResult('deepfake',d);
+  } catch(e){ hideLoader('deepfake'); showWarn('deepfake','Request failed: '+e.message); }
+}
+
+// UPI
+async function runUPI(){
+  const upi_id=document.getElementById('upi-id').value.trim();
+  const message=document.getElementById('upi-msg').value.trim();
+  const amount=document.getElementById('upi-amt').value.trim();
+  if(!upi_id&&!message) return alert('Enter UPI ID or message.');
+  hideWarn('upi'); showLoader('upi');
+  document.getElementById('rc-upi').classList.remove('show');
+  try {
+    const r=await fetch('/api/upi/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({upi_id,message,amount})});
+    const d=await r.json(); hideLoader('upi');
+    if(handleErr('upi',d)) return;
+    const extra=d.fraud_type?`<div class="rsec"><h4>Fraud Category</h4><div class="rbox" style="color:var(--red)">${d.fraud_type}</div></div>`:'';
+    renderResult('upi',d,extra);
+  } catch(e){ hideLoader('upi'); showWarn('upi','Request failed: '+e.message); }
+}
+
+// Digital Arrest
+async function runDArrest(){
+  const message=document.getElementById('da-msg').value.trim();
+  const caller_info=document.getElementById('da-caller').value.trim();
+  if(!message) return alert('Describe what the caller said.');
+  hideWarn('darrest'); showLoader('darrest');
+  document.getElementById('rc-darrest').classList.remove('show');
+  try {
+    const r=await fetch('/api/digital-arrest/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,caller_info})});
+    const d=await r.json(); hideLoader('darrest');
+    if(handleErr('darrest',d)) return;
+    let extra='';
+    if(d.impersonated_agency) extra+=`<div class="rsec"><h4>Impersonated Agency</h4><div class="rbox" style="color:var(--red)">${d.impersonated_agency}</div></div>`;
+    if(d.report_to) extra+=`<div class="rsec"><h4>Report To</h4><div class="rbox">${d.report_to}</div></div>`;
+    renderResult('darrest',d,extra);
+  } catch(e){ hideLoader('darrest'); showWarn('darrest','Request failed: '+e.message); }
+}
+
+// Job
+async function runJob(){
+  const job_text=document.getElementById('job-txt').value.trim();
+  const company=document.getElementById('job-co').value.trim();
+  const contact=document.getElementById('job-src').value.trim();
+  if(!job_text) return alert('Paste the job offer text.');
+  hideWarn('job'); showLoader('job');
+  document.getElementById('rc-job').classList.remove('show');
+  try {
+    const r=await fetch('/api/job/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_text,company,contact})});
+    const d=await r.json(); hideLoader('job');
+    if(handleErr('job',d)) return;
+    const extra=d.verify_steps&&d.verify_steps.length?`<div class="rsec"><h4>Verification Steps</h4><ul class="flist">${d.verify_steps.map(s=>`<li style="color:var(--cyan)">${s}</li>`).join('')}</ul></div>`:'';
+    renderResult('job',d,extra);
+  } catch(e){ hideLoader('job'); showWarn('job','Request failed: '+e.message); }
+}
+
+// Misinfo
+async function runMisinfo(){
+  const content=document.getElementById('mi-content').value.trim();
+  const source=document.getElementById('mi-src').value.trim()||'WhatsApp';
+  if(!content) return alert('Paste the content to fact-check.');
+  hideWarn('misinfo'); showLoader('misinfo');
+  document.getElementById('rc-misinfo').classList.remove('show');
+  try {
+    const r=await fetch('/api/misinfo/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,source})});
+    const d=await r.json(); hideLoader('misinfo');
+    if(handleErr('misinfo',d)) return;
+    let extra='';
+    if(d.fact_check_summary) extra+=`<div class="rsec"><h4>Fact Check</h4><p class="etxt" style="color:var(--cyan)">${d.fact_check_summary}</p></div>`;
+    if(d.verify_sources&&d.verify_sources.length) extra+=`<div class="rsec"><h4>Verify With</h4><ul class="flist">${d.verify_sources.map(s=>`<li style="color:var(--cyan)">${s}</li>`).join('')}</ul></div>`;
+    renderResult('misinfo',d,extra);
+  } catch(e){ hideLoader('misinfo'); showWarn('misinfo','Request failed: '+e.message); }
+}
+
+// SOS
+async function runSOS(){
+  const situation=document.getElementById('sos-sit').value.trim();
+  const location=document.getElementById('sos-loc').value.trim();
+  if(!situation) return alert('Describe your situation.');
+  hideWarn('sos'); showLoader('sos');
+  document.getElementById('rc-sos').classList.remove('show');
+  try {
+    const r=await fetch('/api/sos/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({situation,location})});
+    const d=await r.json(); hideLoader('sos');
+    if(handleErr('sos',d)) return;
+
+    const card=document.getElementById('rc-sos');
+    const tl=d.threat_level||'MEDIUM';
+    const cls=tl==='LOW'?'safe':tl==='MEDIUM'?'warn':'danger';
+    card.className=`rcard show ${cls}`;
+    let h=`<div class="vbadge ${cls}">THREAT LEVEL: ${tl}</div>`;
+    if(d.explanation) h+=`<div class="rsec"><h4>Assessment</h4><p class="etxt">${d.explanation}</p></div>`;
+    if(d.immediate_steps&&d.immediate_steps.length) h+=`<div class="rsec"><h4>⚡ Immediate Steps</h4><ul class="flist">${d.immediate_steps.map((s,i)=>`<li style="color:var(--cyan)"><strong style="color:var(--orange)">${i+1}.</strong> ${s}</li>`).join('')}</ul></div>`;
+    if(d.emergency_numbers&&d.emergency_numbers.length){
+      h+=`<div class="rsec"><h4>Emergency Contacts</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:7px;">`;
+      d.emergency_numbers.forEach(n=>{
+        h+=`<div style="background:rgba(255,23,68,.07);border:1px solid rgba(255,23,68,.25);padding:9px;text-align:center;">
+          <div style="font-family:var(--head);font-size:18px;color:var(--red);">${n.number}</div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-top:2px;">${n.name}</div>
+        </div>`;
+      });
+      h+='</div></div>';
+    }
+    if(d.legal_options&&d.legal_options.length) h+=`<div class="rsec"><h4>Legal Options</h4><ul class="flist">${d.legal_options.map(s=>`<li>${s}</li>`).join('')}</ul></div>`;
+    if(d.evidence_to_preserve&&d.evidence_to_preserve.length) h+=`<div class="rsec"><h4>Evidence to Preserve</h4><ul class="flist">${d.evidence_to_preserve.map(s=>`<li style="color:var(--yellow)">${s}</li>`).join('')}</ul></div>`;
+    card.innerHTML=h;
+  } catch(e){ hideLoader('sos'); showWarn('sos','Request failed: '+e.message); }
+}
+
+// IMEI
+async function runIMEI(mode){
+  const imei=document.getElementById('im-imei').value.trim();
+  if(imei.length!==15) return alert('IMEI must be exactly 15 digits.');
+  const device_name=document.getElementById('im-dev').value.trim()||'My Device';
+  const owner_name=document.getElementById('im-owner').value.trim();
+  hideWarn('imei'); showLoader('imei');
+  document.getElementById('rc-imei').classList.remove('show');
+  try {
+    const ep=mode==='register'?'/api/imei/register':'/api/imei/check-stolen';
+    const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imei,device_name,owner_name})});
+    const d=await r.json(); hideLoader('imei');
+    if(d.error){ showWarn('imei',d.error); return; }
+    if(handleErr('imei',d)) return;
+
+    const card=document.getElementById('rc-imei');
+    if(mode==='register'){
+      card.className='rcard show safe';
+      card.innerHTML=`
+        <div class="vbadge safe">✓ DEVICE REGISTERED</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;">
+          <div style="background:var(--bg3);padding:12px;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3)">IMEI</div>
+            <div style="font-family:var(--head);font-size:18px;color:var(--cyan);letter-spacing:2px;">${d.imei}</div>
+          </div>
+          <div style="background:var(--bg3);padding:12px;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3)">DEVICE</div>
+            <div style="font-family:var(--head);font-size:14px;color:var(--text);">${d.device_name}</div>
+          </div>
+          <div style="background:var(--bg3);padding:12px;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:8px;color:var(--text3)">LUHN CHECK</div>
+            <div style="font-family:var(--head);font-size:16px;color:${d.valid?'var(--green)':'var(--red)'};">${d.valid?'VALID ✓':'INVALID ✗'}</div>
+          </div>
+        </div>
+        <div class="rsec"><h4>If Device Is Stolen</h4><ul class="flist">${(d.report_theft_steps||[]).map(s=>`<li style="color:var(--cyan)">${s}</li>`).join('')}</ul></div>
+        <div class="rbox">${d.message}</div>`;
+    } else {
+      card.className='rcard show warn';
+      let h=`<div class="vbadge warn">⚠ STOLEN DEVICE PROTOCOL</div>`;
+      if(d.check_portals&&d.check_portals.length){
+        h+=`<div class="rsec"><h4>Official Portals</h4>`;
+        d.check_portals.forEach(p=>{
+          h+=`<div style="background:var(--bg3);border:1px solid var(--border);padding:9px 12px;margin-bottom:7px;">
+            <div style="font-family:var(--head);color:var(--cyan);font-size:12px;">${p.name}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">${p.url}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">${p.description}</div>
+          </div>`;
+        });
+        h+='</div>';
+      }
+      if(d.legal_steps&&d.legal_steps.length) h+=`<div class="rsec"><h4>Legal Steps</h4><ul class="flist">${d.legal_steps.map(s=>`<li>${s}</li>`).join('')}</ul></div>`;
+      if(d.auto_fir_process) h+=`<div class="rsec"><h4>Auto-FIR Process</h4><p class="etxt">${d.auto_fir_process}</p></div>`;
+      if(d.recommendation) h+=`<div class="rbox">${d.recommendation}</div>`;
+      card.innerHTML=h;
+    }
+  } catch(e){ hideLoader('imei'); showWarn('imei','Request failed: '+e.message); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  SENTINEL LIVE TRACKER — MAP ENGINE
+//  OpenStreetMap + Leaflet.js — ZERO API KEY
+// ════════════════════════════════════════════════════════════
+let map, mapInitialized=false;
+const tsDevices={};
+let tsSelected=null, tsFollow=true, tsTrail=true, tsHeat=false;
+let tsDemo=null, demoWp=0, demoLat=28.6139, demoLon=77.2090, demoStep=0;
+let tsTotalPings=0;
+
+const WAYPOINTS=[
+  {lat:28.6139,lon:77.2090,city:'New Delhi',   state:'Delhi'},
+  {lat:27.1767,lon:78.0081,city:'Agra',         state:'Uttar Pradesh'},
+  {lat:26.9124,lon:75.7873,city:'Jaipur',       state:'Rajasthan'},
+  {lat:22.7196,lon:75.8577,city:'Indore',       state:'Madhya Pradesh'},
+  {lat:19.0760,lon:72.8777,city:'Mumbai',       state:'Maharashtra'},
+  {lat:15.3173,lon:75.7139,city:'Hubli',        state:'Karnataka'},
+  {lat:12.9716,lon:77.5946,city:'Bengaluru',    state:'Karnataka'},
+  {lat:13.0827,lon:80.2707,city:'Chennai',      state:'Tamil Nadu'},
+  {lat:17.3850,lon:78.4867,city:'Hyderabad',    state:'Telangana'},
+  {lat:22.5726,lon:88.3639,city:'Kolkata',      state:'West Bengal'},
+];
+
+function initMap(){
+  if(mapInitialized) return;
+  mapInitialized=true;
+
+  map = L.map('the-map',{center:[20.5937,78.9629],zoom:5,zoomControl:false,attributionControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  L.control.zoom({position:'topright'}).addTo(map);
+
+  // Start polling server for real devices
+  fetchTsDevices();
+  setInterval(fetchTsDevices,3000);
+  setInterval(fetchTsStats,5000);
+}
+
+function mkMarker(stolen=false){
+  const c=stolen?'#ff1744':'#00e5ff';
+  return L.divIcon({
+    className:'',
+    html:`<style>@keyframes rp{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.8);opacity:0}}@keyframes rp2{0%{transform:scale(1);opacity:.3}100%{transform:scale(2);opacity:0}}</style>
+    <div style="position:relative;width:34px;height:34px;">
+      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid ${c};animation:rp 2s infinite;"></div>
+      <div style="position:absolute;inset:4px;border-radius:50%;border:1px solid ${c};animation:rp2 2s .5s infinite;"></div>
+      <div style="position:absolute;inset:9px;border-radius:50%;background:${c};box-shadow:0 0 14px ${c};"></div>
+      ${stolen?'<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:15px;">🚨</div>':''}
+    </div>`,
+    iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-20]
+  });
+}
+
+function tsPushPing(imei,lat,lon,opts={}){
+  const dev=tsDevices[imei]; if(!dev) return;
+  const ping={lat,lon,ts:new Date(),method:opts.method||'GPS',accuracy:opts.accuracy||10,
+    speed:opts.speed||0,battery:opts.battery!==undefined?opts.battery:100,
+    city:opts.city||'',state:opts.state||'',country:opts.country||''};
+  dev.pings.push(ping);
+  if(dev.pings.length>500) dev.pings.shift();
+  tsTotalPings++; dev.seq++;
+
+  dev.marker.setLatLng([lat,lon]);
+  dev.marker.setIcon(mkMarker(dev.info.stolen));
+  dev.marker.setPopupContent(buildTsPopup({imei,name:dev.info.name,lat,lon,stolen:dev.info.stolen,battery:ping.battery,speed:ping.speed,city:ping.city}));
+
+  if(tsTrail){
+    const coords=dev.pings.map(p=>[p.lat,p.lon]);
+    if(dev.trail) dev.trail.setLatLngs(coords);
+    else dev.trail=L.polyline(coords,{color:'#00e5ff',weight:2,opacity:.4,dashArray:'5,5'}).addTo(map);
+  }
+  if(tsHeat){
+    const hd=dev.pings.map(p=>[p.lat,p.lon,.5]);
+    if(dev.heat) map.removeLayer(dev.heat);
+    if(L.heatLayer) dev.heat=L.heatLayer(hd,{radius:22,blur:16,maxZoom:17,gradient:{0.2:'#00e5ff',0.5:'#00ff88',0.8:'#ff9100',1:'#ff1744'}}).addTo(map);
+  }
+  if(tsFollow&&imei===tsSelected) map.panTo([lat,lon],{animate:true,duration:.8});
+  if(imei===tsSelected){ updateTgtBox(imei,ping); updatePingLog(imei); }
+  updateTsCard(imei); updateTsTopbar();
+}
+
+function buildTsPopup(d){
+  return `<b style="color:#00e5ff;font-family:var(--head);letter-spacing:1px;font-size:10px">${d.name}</b><br>
+    <span style="color:#6aaece">IMEI:</span> ${d.imei}<br>
+    <span style="color:#6aaece">Coords:</span> ${(d.lat||0).toFixed(6)}, ${(d.lon||0).toFixed(6)}<br>
+    <span style="color:#6aaece">Battery:</span> ${d.battery>=0?d.battery+'%':'—'}<br>
+    <span style="color:#6aaece">Status:</span> <span style="color:${d.stolen?'#ff1744':'#39ff14'}">${d.stolen?'STOLEN':'ACTIVE'}</span>`;
+}
+
+function tsCreateDevice(imei,name,lat,lon,stolen=false){
+  if(tsDevices[imei]) return;
+  const marker=L.marker([lat,lon],{icon:mkMarker(stolen),zIndexOffset:stolen?1000:0})
+    .addTo(map).bindPopup(buildTsPopup({imei,name,lat,lon,stolen,battery:100}));
+  marker.on('click',()=>tsSelectDevice(imei));
+  tsDevices[imei]={info:{imei,name,stolen,firstSeen:new Date()},marker,trail:null,heat:null,pings:[{lat,lon,ts:new Date(),method:'INIT',accuracy:0,speed:0,battery:100,city:'',state:'',country:''}],seq:0};
+  buildTsCard(imei);
+  document.getElementById('no-dev').style.display='none';
+  tsTotalPings++;
+  updateTsTopbar();
+}
+
+function tsAddDevice(){
+  const imei=document.getElementById('ts-imei').value.trim()||'355812345678901';
+  const name=document.getElementById('ts-name').value.trim()||'My Device';
+  const lat=parseFloat(document.getElementById('ts-lat').value)||28.6139;
+  const lon=parseFloat(document.getElementById('ts-lon').value)||77.2090;
+  if(imei.length!==15){alert('IMEI must be 15 digits');return;}
+  tsCreateDevice(imei,name,lat,lon);
+  tsSelectDevice(imei);
+  map.flyTo([lat,lon],12,{animate:true,duration:1.5});
+}
+
+function buildTsCard(imei){
+  const cont=document.getElementById('dev-list');
+  const div=document.createElement('div');
+  div.id='dc-'+imei; div.className='dc live';
+  div.onclick=()=>tsSelectDevice(imei);
+  cont.appendChild(div);
+  updateTsCard(imei);
+}
+
+function updateTsCard(imei){
+  const dev=tsDevices[imei];
+  const card=document.getElementById('dc-'+imei); if(!card)return;
+  const last=dev.pings[dev.pings.length-1];
+  const b=last?.battery;
+  card.className=`dc live ${dev.info.stolen?'stolen':''} ${tsSelected===imei?'sel':''}`;
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div><div class="dc-name">${dev.info.name}</div><div class="dc-imei">${imei}</div></div>
+      <div class="tbadge ${dev.info.stolen?'stolen':'live'}">● ${dev.info.stolen?'STOLEN':'LIVE'}</div>
+    </div>
+    <div class="dc-meta">
+      <span>📍 ${last?.city||'—'}</span>
+      <span>🔋 ${b>=0?b+'%':'—'}</span>
+      <span>📡 ${dev.pings.length}</span>
+    </div>
+    ${!dev.info.stolen?`<button class="stbtn" onclick="event.stopPropagation();tsMarkStolen('${imei}')">🚨 MARK STOLEN</button>`:''}`;
+}
+
+function updateTgtBox(imei,ping){
+  const dev=tsDevices[imei]; if(!dev)return;
+  document.getElementById('tgt-box').style.display='block';
+  document.getElementById('ti-name').textContent=dev.info.name;
+  document.getElementById('ti-imei').textContent=imei;
+  document.getElementById('ti-coord').textContent=`${ping.lat.toFixed(6)}\n${ping.lon.toFixed(6)}`;
+  const loc=[ping.city,ping.state,ping.country].filter(Boolean).join(', ');
+  document.getElementById('ti-city').textContent=loc||'Resolving...';
+  document.getElementById('ti-method').textContent=`${ping.method} · ±${Math.round(ping.accuracy||0)}m`;
+  const b=ping.battery;
+  document.getElementById('ti-batt').textContent=b>=0?b+'%':'—';
+  document.getElementById('ti-bbar').style.width=b>=0?b+'%':'0%';
+  document.getElementById('ti-bbar').style.background=b>50?'var(--green)':b>20?'var(--orange)':'var(--red)';
+  document.getElementById('ti-speed').textContent=ping.speed?(ping.speed*3.6).toFixed(1)+' km/h':'0 km/h';
+  document.getElementById('ti-time').textContent=ping.ts.toLocaleString();
+  const st=document.getElementById('ti-status');
+  if(dev.info.stolen){st.textContent='● STOLEN';st.className='tbadge stolen';}
+  else{st.textContent='● LIVE';st.className='tbadge live';}
+}
+
+function updatePingLog(imei){
+  const log=document.getElementById('ping-log');
+  const pings=tsDevices[imei]?.pings||[];
+  log.innerHTML=pings.slice().reverse().slice(0,35).map(p=>`
+    <div class="ping-entry">
+      <span class="co">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</span>
+      <span class="ts">${p.ts.toLocaleTimeString()}</span>
+    </div>`).join('');
+}
+
+function tsSelectDevice(imei){
+  tsSelected=imei;
+  document.querySelectorAll('.dc').forEach(c=>c.classList.remove('sel'));
+  const card=document.getElementById('dc-'+imei); if(card)card.classList.add('sel');
+  const dev=tsDevices[imei];
+  if(dev?.marker){ map.flyTo(dev.marker.getLatLng(),14,{animate:true,duration:1.2}); dev.marker.openPopup(); }
+  const last=dev?.pings[dev.pings.length-1];
+  if(last) updateTgtBox(imei,last);
+  updatePingLog(imei);
+}
+
+function tsMarkStolen(imei){
+  if(!confirm(`Mark ${imei} as STOLEN?`)) return;
+  tsDevices[imei].info.stolen=true;
+  tsDevices[imei].marker.setIcon(mkMarker(true));
+  // Also notify server
+  fetch(`/api/tracker/device/${imei}/mark-stolen`,{method:'POST'}).catch(()=>{});
+  updateTsCard(imei); updateTsTopbar();
+  document.getElementById('stolen-alert').style.display='block';
+}
+
+function updateTsTopbar(){
+  const devs=Object.values(tsDevices);
+  document.getElementById('mt-live').textContent=devs.filter(d=>!d.info.stolen).length;
+  document.getElementById('mt-devs').textContent=devs.length;
+  document.getElementById('mt-pings').textContent=tsTotalPings;
+  document.getElementById('mt-stolen').textContent=devs.filter(d=>d.info.stolen).length;
+  document.getElementById('tb-live').textContent=devs.filter(d=>!d.info.stolen).length;
+  document.getElementById('tb-devs').textContent=devs.length;
+  document.getElementById('ds-devs').textContent=devs.length;
+  document.getElementById('ds-live').textContent=devs.filter(d=>!d.info.stolen).length;
+  document.getElementById('ds-pings').textContent=tsTotalPings;
+  const stolen=devs.some(d=>d.info.stolen);
+  document.getElementById('stolen-alert').style.display=stolen?'block':'none';
+}
+
+function tsTog(mode){
+  if(mode==='follow'){ tsFollow=!tsFollow; document.getElementById('mc-follow').classList.toggle('on',tsFollow); }
+  if(mode==='trail'){
+    tsTrail=!tsTrail; document.getElementById('mc-trail').classList.toggle('on',tsTrail);
+    if(!tsTrail) Object.values(tsDevices).forEach(d=>{if(d.trail){map.removeLayer(d.trail);d.trail=null;}});
+  }
+  if(mode==='heat'){
+    tsHeat=!tsHeat; document.getElementById('mc-heat').classList.toggle('on',tsHeat);
+    if(!tsHeat) Object.values(tsDevices).forEach(d=>{if(d.heat){map.removeLayer(d.heat);d.heat=null;}});
+  }
+}
+function tsFitAll(){
+  const pts=Object.values(tsDevices).filter(d=>d.marker).map(d=>d.marker.getLatLng());
+  if(pts.length) map.fitBounds(L.latLngBounds(pts),{padding:[60,60]});
+}
+function tsClearAll(){
+  if(!confirm('Clear all devices?')) return;
+  Object.values(tsDevices).forEach(d=>{
+    map.removeLayer(d.marker);
+    if(d.trail)map.removeLayer(d.trail);
+    if(d.heat)map.removeLayer(d.heat);
+  });
+  for(const k in tsDevices)delete tsDevices[k];
+  document.getElementById('dev-list').innerHTML='<div id="no-dev" style="padding:16px;text-align:center;font-family:var(--mono);font-size:9px;color:var(--text3);line-height:2.2">⚡ No devices yet.</div>';
+  document.getElementById('tgt-box').style.display='none';
+  document.getElementById('ping-log').innerHTML='';
+  tsSelected=null; tsTotalPings=0; updateTsTopbar(); tsStopDemo();
+}
+
+// ── DEMO SIMULATOR ────────────────────────────────────────────
+const DEMO_IMEI='355812345678901';
+function tsStartDemo(){
+  if(tsDemo) return;
+  if(!tsDevices[DEMO_IMEI]) tsCreateDevice(DEMO_IMEI,'Demo Phone (Simulated)',WAYPOINTS[0].lat,WAYPOINTS[0].lon);
+  tsSelectDevice(DEMO_IMEI);
+  map.flyTo([demoLat,demoLon],8,{animate:true,duration:1.5});
+  document.getElementById('ts-stop').style.display='block';
+  tsDemo=setInterval(()=>{
+    const tgt=WAYPOINTS[demoWp];
+    demoLat+=(tgt.lat-demoLat)*.04+(Math.random()-.5)*.0015;
+    demoLon+=(tgt.lon-demoLon)*.04+(Math.random()-.5)*.0015;
+    if(Math.abs(demoLat-tgt.lat)<.008&&Math.abs(demoLon-tgt.lon)<.008) demoWp=(demoWp+1)%WAYPOINTS.length;
+    demoStep++;
+    tsPushPing(DEMO_IMEI,demoLat,demoLon,{
+      method:'GPS_DEMO',accuracy:6+Math.random()*12,speed:(60+Math.random()*80)/3.6,
+      battery:Math.max(5,Math.round(95-demoStep*.3)),
+      city:WAYPOINTS[demoWp].city,state:WAYPOINTS[demoWp].state,country:'India'
+    });
+    // Also send to server so it persists
+    fetch('/api/tracker/ping',{method:'POST',headers:{'Content-Type':'application/json','X-Device-Token':'phishguard_sentinel_2024'},
+      body:JSON.stringify({token:'phishguard_sentinel_2024',imei:DEMO_IMEI,device_id:'demo_001',device_name:'Demo Phone (Simulated)',seq:demoStep,
+        timestamp:new Date().toISOString(),local_time:new Date().toLocaleString(),
+        location:{lat:demoLat,lon:demoLon,accuracy:8,speed:(60+Math.random()*80)/3.6,bearing:Math.random()*360,method:'GPS_DEMO',city:WAYPOINTS[demoWp].city,state:WAYPOINTS[demoWp].state,country:'India'},
+        battery:{percentage:Math.max(5,Math.round(95-demoStep*.3)),status:'discharging',plugged:'UNPLUGGED'},
+        network:{hostname:'demo-android',platform:'Android'}
+      })
+    }).catch(()=>{});
+  },1500);
+}
+function tsStopDemo(){
+  clearInterval(tsDemo); tsDemo=null;
+  document.getElementById('ts-stop').style.display='none';
+}
+
+// ── Fetch real devices from server ────────────────────────────
+async function fetchTsDevices(){
+  try {
+    const r=await fetch('/api/tracker/devices');
+    const list=await r.json();
+    list.forEach(dev=>{
+      const imei=dev.imei;
+      if(!dev.last_lat||!dev.last_lon) return;
+      if(!tsDevices[imei]){
+        tsCreateDevice(imei,dev.device_name,dev.last_lat,dev.last_lon,dev.status==='stolen');
+      }
+      if(dev.online){
+        tsPushPing(imei,dev.last_lat,dev.last_lon,{
+          method:dev.last_method||'GPS',battery:dev.last_battery,city:dev.last_city
+        });
+      }
+      if(dev.status==='stolen'&&!tsDevices[imei].info.stolen){
+        tsDevices[imei].info.stolen=true;
+        tsDevices[imei].marker.setIcon(mkMarker(true));
+        document.getElementById('stolen-alert').style.display='block';
+      }
+    });
+    updateTsTopbar();
+  } catch(e){}
+}
+async function fetchTsStats(){
+  try {
+    const r=await fetch('/api/tracker/stats');
+    const s=await r.json();
+    document.getElementById('mt-pings').textContent=s.total_pings;
+    document.getElementById('ds-pings').textContent=s.total_pings;
+    tsTotalPings=s.total_pings;
+  } catch(e){}
+}
+
+// ── Enter key shortcut ────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.ctrlKey){
+    const a=document.querySelector('.view.active:not(.map-view)');
+    if(a){ const b=a.querySelector('.btn-p'); if(b) b.click(); }
+  }
+});
+</script>
+</body>
+</html>
